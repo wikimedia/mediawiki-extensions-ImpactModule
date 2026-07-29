@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Martin Urbanec"
+		]
+	},
+	"impactmodule-desc": "Gathers impact data about users via the Wikimedia Analytics service"
+}
