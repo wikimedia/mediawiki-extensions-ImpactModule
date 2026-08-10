@@ -4,6 +4,7 @@ declare( strict_types = 1 );
 
 namespace MediaWiki\Extension\ImpactModule;
 
+use MediaWiki\Extension\ImpactModule\Aqs\AqsClient;
 use MediaWiki\Extension\ImpactModule\Metrics\MetricComputer;
 use MediaWiki\Extension\ImpactModule\Metrics\MetricFactory;
 use MediaWiki\MediaWikiServices;
@@ -26,6 +27,10 @@ final class ImpactModuleServices {
 	 */
 	public static function wrap( MediaWikiServices $coreServices ): self {
 		return new self( $coreServices );
+	}
+
+	public function getAqsClient(): AqsClient {
+		return $this->coreServices->getService( 'ImpactModuleAqsClient' );
 	}
 
 	public function getMetricComputer(): MetricComputer {

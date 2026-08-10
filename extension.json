@@ -24,6 +24,10 @@
 				"example-metric"
 			],
 			"merge_strategy": "provide_default"
+		},
+		"ImpactModuleAqsBaseURL": {
+			"description": "Base URL for the Analytics Query Service",
+			"value": "https://wikimedia.org/api/rest_v1/metrics"
 		}
 	},
 	"SpecialPages": {
