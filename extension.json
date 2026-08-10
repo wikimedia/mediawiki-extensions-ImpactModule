@@ -13,6 +13,33 @@
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\ImpactModule\\": "src/"
 	},
+	"config": {
+		"ImpactModuleThrowOnFailures": {
+			"description": "Throw any errors that happen during metric computation (useful for development)",
+			"value": false
+		},
+		"ImpactModuleEnabledMetrics": {
+			"description": "List of enabled metrics IDs",
+			"value": [
+				"example-metric"
+			],
+			"merge_strategy": "provide_default"
+		}
+	},
+	"SpecialPages": {
+		"NewImpact": {
+			"class": "MediaWiki\\Extension\\ImpactModule\\Specials\\SpecialImpact",
+			"services": [
+				"ImpactModuleMetricComputer"
+			]
+		}
+	},
+	"ServiceWiringFiles": [
+		"src/ServiceWiring.php"
+	],
+	"ExtensionMessagesFiles": {
+		"ImpactModuleAlias": "ImpactModule.alias.php"
+	},
 	"MessagesDirs": {
 		"ImpactModule": [
 			"i18n"
