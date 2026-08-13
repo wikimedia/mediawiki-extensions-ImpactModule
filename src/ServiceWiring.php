@@ -15,6 +15,7 @@ return [
 
 		return new MetricComputer(
 			$services->getMainConfig(),
+			$services->getMainWANObjectCache(),
 			$imServices->getLogger(),
 			$imServices->getMetricFactory(),
 		);

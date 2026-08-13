@@ -4,6 +4,7 @@ declare( strict_types = 1 );
 
 namespace MediaWiki\Extension\ImpactModule\Metrics\Metric;
 
+use MediaWiki\Extension\ImpactModule\Metrics\Cache\CachePolicy;
 use MediaWiki\Extension\ImpactModule\Metrics\MetricResult;
 use MediaWiki\User\UserIdentity;
 
@@ -20,6 +21,10 @@ class ExampleMetric implements IMetric {
 
 	public function isAvailableForUser( UserIdentity $user ): bool {
 		return true;
+	}
+
+	public function getCachePolicy(): CachePolicy {
+		return CachePolicy::newNoCachePolicy();
 	}
 
 	public function computeMetric( UserIdentity $user ): MetricResult {

@@ -18,6 +18,7 @@ class SpecialImpact extends SpecialPage {
 
 	/** @inheritDoc */
 	public function execute( $subPage ) {
+		$this->requireLogin();
 		parent::execute( $subPage );
 
 		// This will eventually be replaced with a much nicer client

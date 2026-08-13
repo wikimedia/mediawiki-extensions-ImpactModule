@@ -4,6 +4,7 @@ declare( strict_types = 1 );
 
 namespace MediaWiki\Extension\ImpactModule\Metrics\Metric;
 
+use MediaWiki\Extension\ImpactModule\Metrics\Cache\CachePolicy;
 use MediaWiki\Extension\ImpactModule\Metrics\MetricFactory;
 use MediaWiki\Extension\ImpactModule\Metrics\MetricResult;
 use MediaWiki\User\UserIdentity;
@@ -37,6 +38,17 @@ interface IMetric {
 	 * @return bool
 	 */
 	public function isAvailableForUser( UserIdentity $user ): bool;
+
+	/**
+	 * Returns a cache policy for the metric
+	 *
+	 * Constructable using CachePolicy::newNoCachePolicy() (for no caching)
+	 * and CachePolicy::newCachePolicy( TTL ) (for some kind of caching). Fluent setters
+	 * can be available for various cache policy properties.
+	 *
+	 * @return CachePolicy
+	 */
+	public function getCachePolicy(): CachePolicy;
 
 	/**
 	 * Compute the metric

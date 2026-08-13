@@ -17,6 +17,8 @@ use MediaWiki\Extension\ImpactModule\Metrics\Value\PrimitiveMetricValue;
  */
 class MetricResult implements JsonSerializable {
 
+	public const int CACHE_VERSION = 1;
+
 	private function __construct(
 		private readonly MetricState $state,
 		private readonly ?IMetricValue $value
