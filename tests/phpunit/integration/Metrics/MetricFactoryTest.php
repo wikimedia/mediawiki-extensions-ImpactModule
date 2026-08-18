@@ -1,5 +1,7 @@
 <?php
 
+declare( strict_types = 1 );
+
 namespace MediaWiki\Extension\ImpactModule\Tests\Integration\Metrics;
 
 use MediaWiki\Extension\ImpactModule\ImpactModuleServices;

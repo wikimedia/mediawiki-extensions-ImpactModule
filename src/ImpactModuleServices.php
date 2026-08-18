@@ -1,5 +1,7 @@
 <?php
 
+declare( strict_types = 1 );
+
 namespace MediaWiki\Extension\ImpactModule;
 
 use MediaWiki\Extension\ImpactModule\Metrics\MetricComputer;

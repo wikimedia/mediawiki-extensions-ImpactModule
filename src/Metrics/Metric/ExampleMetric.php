@@ -1,5 +1,7 @@
 <?php
 
+declare( strict_types = 1 );
+
 namespace MediaWiki\Extension\ImpactModule\Metrics\Metric;
 
 use MediaWiki\Extension\ImpactModule\Metrics\MetricResult;
