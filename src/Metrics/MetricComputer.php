@@ -13,6 +13,7 @@ use MediaWiki\User\UserIdentity;
 use Psr\Log\LoggerInterface;
 use Throwable;
 use Wikimedia\Assert\Assert;
+use Wikimedia\JsonCodec\JsonCodecInterface;
 use Wikimedia\ObjectCache\WANObjectCache;
 
 /**
@@ -24,6 +25,7 @@ class MetricComputer {
 
 	public function __construct(
 		private readonly Config $config,
+		private readonly JsonCodecInterface $jsonCodec,
 		private readonly WANObjectCache $cache,
 		private readonly LoggerInterface $logger,
 		private readonly MetricFactory $metricFactory
@@ -81,7 +83,7 @@ class MetricComputer {
 		if ( $cacheVersion !== null ) {
 			$cacheOptions['version'] = $cacheVersion;
 		}
-		return $this->cache->getWithSetCallback(
+		$serialisedResult = $this->cache->getWithSetCallback(
 			$this->cache->makeKey(
 				'ImpactModule-getMetric',
 				$metricId, $user->getId(),
@@ -95,9 +97,10 @@ class MetricComputer {
 					// errors should not be cached
 					$ttl = WANObjectCache::TTL_UNCACHEABLE;
 				}
-				return $metricResult;
+				return $this->jsonCodec->toJsonArray( $metricResult, MetricResult::class );
 			},
 			$cacheOptions
 		);
+		return $this->jsonCodec->newFromJsonArray( $serialisedResult, MetricResult::class );
 	}
 }

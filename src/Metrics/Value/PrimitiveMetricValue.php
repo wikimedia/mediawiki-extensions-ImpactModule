@@ -4,6 +4,8 @@ declare( strict_types = 1 );
 
 namespace MediaWiki\Extension\ImpactModule\Metrics\Value;
 
+use Wikimedia\JsonCodec\JsonCodecableTrait;
+
 /**
  * A metric value used with primitive data types
  *
@@ -13,6 +15,7 @@ namespace MediaWiki\Extension\ImpactModule\Metrics\Value;
  * PrimitiveMetricValue is capable of accepting it.
  */
 class PrimitiveMetricValue implements IMetricValue {
+	use JsonCodecableTrait;
 
 	public function __construct(
 		private readonly int|float $value
@@ -23,7 +26,15 @@ class PrimitiveMetricValue implements IMetricValue {
 		return strval( $this->value );
 	}
 
-	public function jsonSerialize(): mixed {
-		return $this->value;
+	/** @inheritDoc */
+	public function toJsonArray(): array {
+		return [
+			'value' => $this->value,
+		];
+	}
+
+	/** @inheritDoc */
+	public static function newFromJsonArray( array $json ): self {
+		return new self( $json['value'] );
 	}
 }

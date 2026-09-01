@@ -4,10 +4,11 @@ declare( strict_types = 1 );
 
 namespace MediaWiki\Extension\ImpactModule\Metrics;
 
-use JsonSerializable;
 use LogicException;
 use MediaWiki\Extension\ImpactModule\Metrics\Value\IMetricValue;
 use MediaWiki\Extension\ImpactModule\Metrics\Value\PrimitiveMetricValue;
+use Wikimedia\JsonCodec\JsonCodecable;
+use Wikimedia\JsonCodec\JsonCodecableTrait;
 
 /**
  * Representation of a metric result
@@ -15,7 +16,8 @@ use MediaWiki\Extension\ImpactModule\Metrics\Value\PrimitiveMetricValue;
  * @see IMetricValue Unlike IMetricValue, MetricResult also includes the status of the
  * computation (was it successful).
  */
-class MetricResult implements JsonSerializable {
+class MetricResult implements JsonCodecable {
+	use JsonCodecableTrait;
 
 	public const int CACHE_VERSION = 1;
 
@@ -59,11 +61,17 @@ class MetricResult implements JsonSerializable {
 		return $this->value;
 	}
 
-	public function jsonSerialize(): mixed {
+	/** @inheritDoc */
+	public function toJsonArray(): array {
 		$result = [ 'state' => $this->getState() ];
 		if ( $this->getState() === MetricState::Ready ) {
 			$result['value'] = $this->getValue();
 		}
 		return $result;
+	}
+
+	/** @inheritDoc */
+	public static function newFromJsonArray( array $json ): self {
+		return new self( $json['state'], $json['value'] ?? null );
 	}
 }

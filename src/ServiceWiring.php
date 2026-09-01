@@ -23,6 +23,7 @@ return [
 
 		return new MetricComputer(
 			$services->getMainConfig(),
+			$services->getJsonCodec(),
 			$services->getMainWANObjectCache(),
 			$imServices->getLogger(),
 			$imServices->getMetricFactory(),

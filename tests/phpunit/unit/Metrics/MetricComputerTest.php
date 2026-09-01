@@ -17,6 +17,7 @@ use MediaWikiUnitTestCase;
 use PHPUnit\Framework\MockObject\Rule\InvocationOrder;
 use Psr\Log\NullLogger;
 use RuntimeException;
+use Wikimedia\JsonCodec\JsonCodec;
 use Wikimedia\ObjectCache\HashBagOStuff;
 use Wikimedia\ObjectCache\WANObjectCache;
 
@@ -63,6 +64,7 @@ class MetricComputerTest extends MediaWikiUnitTestCase {
 				// is desirable
 				'ImpactModuleThrowOnFailures' => true,
 			] ),
+			new JsonCodec(),
 			new WANObjectCache( [ 'cache' => $this->cache ] ),
 			new NullLogger(),
 			$factory
@@ -125,13 +127,13 @@ class MetricComputerTest extends MediaWikiUnitTestCase {
 
 		$computer = $this->getComputer( $this->getFactoryMock( 'metric-id', $metric ) );
 
-		$this->assertSame(
+		$this->assertEquals(
 			$result,
 			$computer->getMetricResult( 'metric-id', $user )
 		);
 
 		// This should go via cache, verified via the `once` expectation on `computeMetric`
-		$this->assertSame(
+		$this->assertEquals(
 			$result,
 			$computer->getMetricResult( 'metric-id', $user )
 		);
@@ -183,13 +185,13 @@ class MetricComputerTest extends MediaWikiUnitTestCase {
 		$computerB = $this->getComputer( $this->getFactoryMock( 'metric-id', $metricB ) );
 
 		// Cache miss, then hit (verified via `computeMetric` expectations)
-		$this->assertSame( $resultA, $computerA->getMetricResult( 'metric-id', $user ) );
-		$this->assertSame( $resultA, $computerA->getMetricResult( 'metric-id', $user ) );
+		$this->assertEquals( $resultA, $computerA->getMetricResult( 'metric-id', $user ) );
+		$this->assertEquals( $resultA, $computerA->getMetricResult( 'metric-id', $user ) );
 
 		// Cache miss, then hit (same metric-id, but different cache version)
 		// Verified via `computeMetric` expectations
-		$this->assertSame( $resultB, $computerB->getMetricResult( 'metric-id', $user ) );
-		$this->assertSame( $resultB, $computerB->getMetricResult( 'metric-id', $user ) );
+		$this->assertEquals( $resultB, $computerB->getMetricResult( 'metric-id', $user ) );
+		$this->assertEquals( $resultB, $computerB->getMetricResult( 'metric-id', $user ) );
 	}
 
 	public function testGetMetricResultFailure() {
