@@ -29,6 +29,9 @@ class AqsClient {
 
 	private readonly AqsResponseParser $responseParser;
 	private readonly MapCacheLRU $cache;
+	private bool $collecting = false;
+	/** @var array<string,true> Set of URLs registered while collecting */
+	private array $pendingUrls = [];
 
 	public function __construct(
 		private readonly CentralUserIdResolver $centralUserIdResolver,
@@ -80,6 +83,97 @@ class AqsClient {
 		return $centralUserId;
 	}
 
+	/**
+	 * Start registering requested URLs instead of fetching them.
+	 *
+	 * While collecting, an endpoint access that is not memoized yet registers
+	 * its URL and returns the same "no data" value an HTTP 404 produces, so
+	 * callers run to completion without performing any I/O. Pass over the
+	 * callers once to let them declare what they need, then call
+	 * flushCollected() to fetch all of it at once.
+	 */
+	public function startCollecting(): void {
+		$this->collecting = true;
+	}
+
+	/**
+	 * Fetch everything registered since startCollecting() in one parallel
+	 * batch, and memoize the results.
+	 *
+	 * Stops collecting, whether or not anything was registered.
+	 *
+	 * Never throws: a request that failed is memoized as its own error and
+	 * rethrown when a caller actually asks for that URL, so one broken
+	 * endpoint neither takes out the whole batch nor gets quietly retried one
+	 * request at a time afterwards.
+	 */
+	public function flushCollected(): void {
+		$this->collecting = false;
+		$urls = array_keys( $this->pendingUrls );
+		$this->pendingUrls = [];
+		if ( !$urls ) {
+			return;
+		}
+
+		$httpMethod = 'GET';
+		$reqs = [];
+		foreach ( $urls as $url ) {
+			// Keyed by URL, so a request that several callers asked for is made once
+			$reqs[$url] = [ 'method' => $httpMethod, 'url' => $url ];
+		}
+
+		$results = $this->httpRequestFactory
+			->createMultiClient( [ 'reqTimeout' => self::AQS_TIMEOUT ] )
+			->runMulti( $reqs, [], __METHOD__ );
+
+		foreach ( $results as $url => $req ) {
+			$cacheKey = $this->cache->makeKey( $httpMethod, $url );
+			try {
+				$this->cache->set( $cacheKey, $this->interpretMultiResponse( $req['response'] ) );
+			} catch ( AqsError $e ) {
+				$this->cache->set( $cacheKey, $e );
+			}
+		}
+	}
+
+	/**
+	 * Interpret one runMulti() response map the way downloadAqsUrl()
+	 * interprets a single request.
+	 *
+	 * @return array|null Decoded response, or null when AQS has no data
+	 * @throws AqsError on transport failure or an unexpected response shape
+	 */
+	private function interpretMultiResponse( array $response ): ?array {
+		$code = (int)$response['code'];
+		if ( $code === 404 ) {
+			// No data in AQS
+			return null;
+		}
+		if ( $response['error'] !== '' || $code < 200 || $code > 299 ) {
+			throw AqsError::newFromMessage(
+				'AQS request failed with HTTP ' . $code
+					. ( $response['error'] !== '' ? ': ' . $response['error'] : '' )
+			);
+		}
+		return $this->parseResponseBody( (string)$response['body'] );
+	}
+
+	/**
+	 * @throws AqsError when the body is not a JSON array
+	 */
+	private function parseResponseBody( string $body ): array {
+		$jsonStatus = FormatJson::parse( $body, FormatJson::FORCE_ASSOC );
+		if ( !$jsonStatus->isOK() ) {
+			throw AqsError::newFromStatus( $jsonStatus );
+		}
+
+		$data = $jsonStatus->getValue();
+		if ( !is_array( $data ) ) {
+			throw AqsError::newFromMessage( 'AQS returned a non-array' );
+		}
+		return $data;
+	}
+
 	private function downloadAqsUrl( string $httpMethod, string $url ): ?array {
 		$request = $this->httpRequestFactory->create(
 			$url,
@@ -101,16 +195,7 @@ class AqsClient {
 			throw AqsError::newFromStatus( $httpStatus );
 		}
 
-		$jsonStatus = FormatJson::parse( $request->getContent(), FormatJson::FORCE_ASSOC );
-		if ( !$jsonStatus->isOK() ) {
-			throw AqsError::newFromStatus( $jsonStatus );
-		}
-
-		$data = $jsonStatus->getValue();
-		if ( !is_array( $data ) ) {
-			throw AqsError::newFromMessage( 'AQS returned a non-array' );
-		}
-		return $data;
+		return $this->parseResponseBody( $request->getContent() );
 	}
 
 	/**
@@ -122,10 +207,32 @@ class AqsClient {
 		// Constant right now, but used in two places
 		$httpMethod = 'GET';
 		$url = implode( '/', array_merge( [ $this->baseUrl ], $params ) );
-		return $this->cache->getWithSetCallback(
-			$this->cache->makeKey( $httpMethod, $url ),
-			fn () => $this->downloadAqsUrl( $httpMethod, $url )
+		$cacheKey = $this->cache->makeKey( $httpMethod, $url );
+
+		if ( $this->collecting && !$this->cache->has( $cacheKey ) ) {
+			$this->pendingUrls[$url] = true;
+			// The value an HTTP 404 yields, so the caller completes without
+			// any I/O. A collecting pass discards its result anyway.
+			return null;
+		}
+
+		$response = $this->cache->getWithSetCallback(
+			$cacheKey,
+			function () use ( $httpMethod, $url ) {
+				try {
+					return $this->downloadAqsUrl( $httpMethod, $url );
+				} catch ( AqsError $e ) {
+					// Memoized like a batched failure, rather than left for the
+					// next caller of this URL to request all over again
+					return $e;
+				}
+			}
 		);
+		if ( $response instanceof AqsError ) {
+			// Memoized failure, from either path
+			throw $response;
+		}
+		return $response;
 	}
 
 	/**
