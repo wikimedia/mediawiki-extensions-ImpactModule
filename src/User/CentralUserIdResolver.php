@@ -22,6 +22,7 @@ use MediaWiki\User\UserIdentity;
  */
 class CentralUserIdResolver {
 
+	private ?int $debugCentralUserId = null;
 	/** @var array<int,int> Local user ID => central user ID */
 	private array $resolved = [];
 
@@ -31,10 +32,29 @@ class CentralUserIdResolver {
 	}
 
 	/**
+	 * Report the given central user ID for every subject.
+	 *
+	 * Development and test purpose only: locally, CentralIdLookup hands out
+	 * IDs that production services know nothing about, so pointing at the central
+	 * ID of a real, active editor is what makes them return data to develop
+	 * against. Callers are responsible for checking that this is allowed, see
+	 * $wgImpactModuleAllowDebugCentralId.
+	 */
+	public function setDebugCentralUserId( int $centralUserId ): void {
+		$this->debugCentralUserId = $centralUserId;
+	}
+
+	/**
 	 * @param UserIdentity $user Subject of the metric
 	 * @return int The central user ID, or 0 when the user has none
 	 */
 	public function getCentralUserId( UserIdentity $user ): int {
+		// Checked before the memo, so that overriding after something was
+		// already resolved still takes effect
+		if ( $this->debugCentralUserId !== null ) {
+			return $this->debugCentralUserId;
+		}
+
 		$localId = $user->getId();
 		if ( !array_key_exists( $localId, $this->resolved ) ) {
 			$this->resolved[$localId] = $this->centralIdLookup->centralIdFromLocalUser( $user );

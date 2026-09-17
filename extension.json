@@ -28,12 +28,17 @@
 		"ImpactModuleAqsBaseURL": {
 			"description": "Base URL for the Analytics Query Service",
 			"value": "https://wikimedia.org/api/rest_v1/metrics"
+		},
+		"ImpactModuleAllowDebugCentralId": {
+			"description": "Let the debugCentralId query parameter of Special:NewImpact override the central user ID sent to the Analytics Query Service (useful for development against production data; do not enable in production)",
+			"value": false
 		}
 	},
 	"SpecialPages": {
 		"NewImpact": {
 			"class": "MediaWiki\\Extension\\ImpactModule\\Specials\\SpecialImpact",
 			"services": [
+				"ImpactModuleCentralUserIdResolver",
 				"ImpactModuleMetricComputer"
 			]
 		}
