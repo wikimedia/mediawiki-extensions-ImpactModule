@@ -6,14 +6,17 @@ use MediaWiki\Extension\ImpactModule\Aqs\AqsClient;
 use MediaWiki\Extension\ImpactModule\ImpactModuleServices;
 use MediaWiki\Extension\ImpactModule\Metrics\MetricComputer;
 use MediaWiki\Extension\ImpactModule\Metrics\MetricFactory;
+use MediaWiki\Extension\ImpactModule\User\CentralUserIdResolver;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 use Psr\Log\LoggerInterface;
 
 return [
 	'ImpactModuleAqsClient' => static function ( MediaWikiServices $services ): AqsClient {
+		$imServices = ImpactModuleServices::wrap( $services );
+
 		return new AqsClient(
-			$services->getCentralIdLookup(),
+			$imServices->getCentralUserIdResolver(),
 			$services->getHttpRequestFactory(),
 			$services->getMainConfig()->get( 'ImpactModuleAqsBaseURL' )
 		);
@@ -28,6 +31,11 @@ return [
 			$imServices->getLogger(),
 			$imServices->getMetricFactory(),
 		);
+	},
+	'ImpactModuleCentralUserIdResolver' => static function (
+		MediaWikiServices $services
+	): CentralUserIdResolver {
+		return new CentralUserIdResolver( $services->getCentralIdLookup() );
 	},
 	'ImpactModuleMetricFactory' => static function ( MediaWikiServices $services ): MetricFactory {
 		return new MetricFactory(

@@ -7,6 +7,7 @@ namespace MediaWiki\Extension\ImpactModule;
 use MediaWiki\Extension\ImpactModule\Aqs\AqsClient;
 use MediaWiki\Extension\ImpactModule\Metrics\MetricComputer;
 use MediaWiki\Extension\ImpactModule\Metrics\MetricFactory;
+use MediaWiki\Extension\ImpactModule\User\CentralUserIdResolver;
 use MediaWiki\MediaWikiServices;
 use Psr\Log\LoggerInterface;
 
@@ -31,6 +32,10 @@ final class ImpactModuleServices {
 
 	public function getAqsClient(): AqsClient {
 		return $this->coreServices->getService( 'ImpactModuleAqsClient' );
+	}
+
+	public function getCentralUserIdResolver(): CentralUserIdResolver {
+		return $this->coreServices->getService( 'ImpactModuleCentralUserIdResolver' );
 	}
 
 	public function getMetricComputer(): MetricComputer {

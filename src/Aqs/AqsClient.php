@@ -5,9 +5,10 @@ declare( strict_types = 1 );
 namespace MediaWiki\Extension\ImpactModule\Aqs;
 
 use InvalidArgumentException;
+use LogicException;
+use MediaWiki\Extension\ImpactModule\User\CentralUserIdResolver;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Json\FormatJson;
-use MediaWiki\User\CentralId\CentralIdLookup;
 use MediaWiki\User\UserIdentity;
 use Wikimedia\MapCacheLRU\MapCacheLRU;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
@@ -30,7 +31,7 @@ class AqsClient {
 	private readonly MapCacheLRU $cache;
 
 	public function __construct(
-		private readonly CentralIdLookup $centralIdLookup,
+		private readonly CentralUserIdResolver $centralUserIdResolver,
 		private readonly HttpRequestFactory $httpRequestFactory,
 		private readonly string $baseUrl
 	) {
@@ -58,6 +59,25 @@ class AqsClient {
 		$end = ConvertibleTimestamp::time() - self::INGESTION_LAG_DAYS * self::SECONDS_PER_DAY;
 		$start = $end - ( $lastDays - 1 ) * self::SECONDS_PER_DAY;
 		return [ $start, $end ];
+	}
+
+	/**
+	 * The central user ID that AQS per-editor endpoints are keyed by.
+	 *
+	 * Callers are expected to have established that the subject has one, which
+	 * is what IMetric::isAvailableForUser() is for; reaching here without one
+	 * means the two disagree.
+	 *
+	 * @throws LogicException when the user has no central ID
+	 */
+	private function getCentralUserId( UserIdentity $user ): int {
+		$centralUserId = $this->centralUserIdResolver->getCentralUserId( $user );
+		if ( !$centralUserId ) {
+			// No central ID, unable to compute
+			// TODO: This also happens for suppressed users, figure out a better behaviour...
+			throw new LogicException( 'No central ID was returned for user #' . $user->getId() );
+		}
+		return $centralUserId;
 	}
 
 	private function downloadAqsUrl( string $httpMethod, string $url ): ?array {
@@ -121,18 +141,11 @@ class AqsClient {
 		AqsPageType $pageType,
 		int $lastDays
 	): array {
-		$centralUserId = $this->centralIdLookup->centralIdFromLocalUser( $user );
-		if ( !$centralUserId ) {
-			// No central ID, unable to compute
-			// TODO: This also happens for suppressed users, figure out a better behaviour...
-			throw new \LogicException( 'No central ID was returned for user #' . $user->getId() );
-		}
-
 		[ $startEpoch, $endEpoch ] = $this->getDailyRange( $lastDays );
 
 		$response = $this->accessAqsEndpoint( [
 			'edits', 'v3', 'per_editor',
-			$centralUserId,
+			$this->getCentralUserId( $user ),
 			$pageType->value, 'daily',
 			gmdate( 'Ymd', $startEpoch ), gmdate( 'Ymd', $endEpoch ),
 		] );
