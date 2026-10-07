@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Toliño"
+		]
+	},
+	"impactmodule-desc": "Recolle datos de impacto sobre os usuarios a través do servizo de analíticas da Wikimedia"
+}
