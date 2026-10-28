@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Siebrand"
+		]
+	},
+	"impactmodule-desc": "Verzamelt impactgegevens over gebruikers via de Wikimedia Analytics-dienst"
+}
